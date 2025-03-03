@@ -1,0 +1,30 @@
+{% load static tailwind_tags %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Marital | {% block title %}  {% endblock %} </title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@100;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+	{% tailwind_css %}
+
+    <style>
+        .playful-display {
+            font-family: 'Playfair Display', serif;
+        }
+        .poppins-display {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+    
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% block content %}{% endblock %}
+
+</body>
+</html>
+</html>
