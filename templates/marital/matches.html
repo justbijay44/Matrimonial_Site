@@ -10,7 +10,8 @@
     <!-- Success/Error Messages -->
     {% if messages %}
     {% for message in messages %}
-    <div class="mb-6 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %} shadow-md">
+    <div
+        class="mb-6 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %} shadow-md">
         {{ message }}
     </div>
     {% endfor %}
@@ -23,24 +24,37 @@
         <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
             <div class="w-32 h-32 mx-auto bg-gray-200 rounded-full overflow-hidden mb-4">
                 {% if match_profile.image %}
-                <img src="{{ match_profile.image.url }}" alt="{{ match_profile.user.username }}'s Profile" class="w-full h-full object-cover">
+                <img src="{{ match_profile.image.url }}" alt="{{ match_profile.user.username }}'s Profile"
+                    class="w-full h-full object-cover">
                 {% else %}
-                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="w-full h-full object-cover">
+                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar"
+                    class="w-full h-full object-cover">
                 {% endif %}
             </div>
             <h3 class="text-xl font-semibold text-gray-800">{{ match_profile.user.username }}</h3>
             <p class="text-gray-600 text-sm">{{ match_profile.bio|default:"No bio available." }}</p>
             <p class="text-gray-600 text-sm">Age: {{ match_profile.age }}</p>
             <p class="text-gray-600 text-sm">Location: {{ match_profile.location|default:"Not specified" }}</p>
+            {% if match.status == 'pending' %}
             <form method="post" action="{% url 'marital:match_action' match.id %}" class="mt-4 space-y-2">
                 {% csrf_token %}
-                <button type="submit" name="action" value="accept" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 mb-2">
-                    Accept
+                <button type="submit" name="action" value="like"
+                    class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 mb-2">
+                    Like
                 </button>
-                <button type="submit" name="action" value="reject" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+                <button type="submit" name="action" value="reject"
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
                     Reject
                 </button>
             </form>
+            {% elif match.status == 'liked' %}
+            <p class="mt-4 text-gray-600 text-sm">You liked there profile. Wait for there response </p>
+            {% elif match.status == 'matched' %}
+            <p class="mt-4 text-green-700 text-sm font-semibold">Matched<a
+                    href="{% url 'marital:messages' match.id %}">Send a Message</a></p>
+            {% elif match.status == 'rejected' %}
+            <p class="mt-4 text-red-600 text-sm">You rejected this profile.</p>
+            {% endif %}
         </div>
         {% endfor %}
     </div>

@@ -112,9 +112,9 @@
         {% csrf_token %}
         {% for field in preference_form %}
         <div class="w-[25%] flex flex-col items-start">
-            <label class="block text-white text-sm font-medium mb-1 leading-tight">I'm looking for a</label>
+            <label for="{{ field.id_for_label }}" class="block text-white text-sm font-medium mb-2 leading-tight">{{ field.label }}</label>
             <select
-                class="w-full p-2 border border-gray-300 rounded bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ml-1 mr-1"
+                class="w-full p-2 border border-gray-300 rounded bg-white text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mr-1"
                 name="{{ field.name }}" id="{{ field.id_for_label }}">
                 {% for value, label in field.field.choices %}
                 <option value="{{ value }}" {% if value|stringformat:"s" == field.value|stringformat:"s" or field.value is none and value|stringformat:"s" == '' %}selected{% endif %}>

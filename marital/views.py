@@ -150,7 +150,7 @@ def matches(request):
         matches_query &= Q(marital_status=preference.prefered_marital_status)
 
     if preference.prefered_location:
-        matches_query &= Q(location__icontains=preference.prefered_location)
+        matches_query &= Q(location__icontains=preference.prefered_location) | Q(location__isnull = True)
 
     if preference.prefered_height:
         matches_query &= Q(height=preference.prefered_height)
@@ -168,7 +168,10 @@ def matches(request):
         )
     ).filter(matches_query,
             calculated_age__gte=preference.min_age,
-            calculated_age__lte=preference.max_age).exclude(user = request.user)    
+            calculated_age__lte=preference.max_age).exclude(user = request.user)   
+
+    # excluded_users = Match.objects.filter(user1=request.user, status__in=['liked','rejected']).values('user2')
+    # matches = matches.exclude(user__in = excluded_users)
 
     # Check for existing matches or create new ones
     match_list = []
@@ -183,22 +186,38 @@ def matches(request):
 
             defaults={'status':'pending'}
         )
-        match_list.append((match_profile, match))
+        reversed_match = Match.objects.filter(user1=match_profile.user, user2=request.user).first()
+        # and (not reversed_match or reversed_match.status == 'pending')
+        if match.status == 'pending':
+            match_list.append((match_profile, match))
 
     return render(request, 'marital/matches.html', {'matches': match_list})
 
 
 def match_action(request, match_id):
-    match = get_object_or_404(Match, id = match_id)
+    match = get_object_or_404(Match, id=match_id)
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'accept':
-            match.status = 'accepted'
-            messages.success(request, f"A possible chance with {match.user2.username}💕")
+        if action == 'like':
+            match.status = 'liked'
+            messages.success(request, f"You liked {match.user2.username}! Waiting for their response. 💕")
+            reverse_match = Match.objects.filter(user1 = match.user2, user2 = match.user1).first()
+
+            if reverse_match and reverse_match.status == 'liked':
+                match.status = 'matched'
+                reverse_match.status = 'matched'
+                match.save()
+                reverse_match.save()
+                messages.success(request, f"Mutual match with {match.user2.username}! You can now message each other. 🎉")
+                return redirect('marital:messages', match_id=match.id)
         elif action == 'reject':
             match.status = 'rejected'
-            messages.success(request, f"One more possibility decreased. {match.user2.username} Eliminated❤️‍🩹")
-
+            messages.error(request, f"One more possibility decreased. {match.user2.username} Eliminated❤️‍🩹")
         match.save()
         return redirect('marital:matches')
     return redirect('marital:matches')
+
+
+def match_messages(request, match_id):
+    match = get_object_or_404(Match, id=match_id)
+    return render(request, 'marital/message.html', {'match': match})

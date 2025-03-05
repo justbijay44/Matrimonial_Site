@@ -86,15 +86,15 @@ class Match(models.Model):
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
+        ('liked', 'Liked'),
         ('rejected', 'Rejected'),
+        ('matched', 'Matched'),
     ]
     
     user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_initiated')
     user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_received')
-    created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         unique_together = ('user1', 'user2')
