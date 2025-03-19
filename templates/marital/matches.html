@@ -50,8 +50,16 @@
             {% elif match.status == 'liked' %}
             <p class="mt-4 text-gray-600 text-sm">You liked there profile. Wait for there response </p>
             {% elif match.status == 'matched' %}
-            <p class="mt-4 text-green-700 text-sm font-semibold">Matched<a
-                    href="{% url 'marital:messages' match.id %}">Send a Message</a></p>
+            <p class="mt-4 text-green-700 text-sm font-semibold">
+                Matched
+                {% if match.user1 == request.user %}
+                <a href="{% url 'marital:chat' room_name=match.user2.username %}"
+                    class="block py-2 text-gray-700 basered">Messages</a>
+                {% else %}
+                <a href="{% url 'marital:chat' room_name=match.user1.username %}"
+                    class="block py-2 text-gray-700 basered">Messages</a>
+                {% endif %}
+            </p>
             {% elif match.status == 'rejected' %}
             <p class="mt-4 text-red-600 text-sm">You rejected this profile.</p>
             {% endif %}

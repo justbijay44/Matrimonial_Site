@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 class UserProfile(models.Model):
 
@@ -91,8 +92,8 @@ class Match(models.Model):
         ('matched', 'Matched'),
     ]
     
-    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_initiated')
-    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_received')
+    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user1_matches')
+    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user2_matches')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -101,3 +102,13 @@ class Match(models.Model):
     
     def __str__(self):
         return f"Match between {self.user1.username} and {self.user2.username}"
+    
+class Message(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.sender.username} to {self.receiver.username} - {self.content[:30]}"

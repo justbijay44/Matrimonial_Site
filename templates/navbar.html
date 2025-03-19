@@ -46,11 +46,14 @@
             </svg>
           </button>
         
-          <div id="userDropdown"
-            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 hidden z-50 overflow-hidden">
+          <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 hidden z-50 overflow-hidden">
             <a href="{% url 'marital:edit_profile' %}" class="block text-black px-4 py-2 basered">Profile</a>
             <a href="{% url 'marital:matches' %}" class="block px-4 py-2 text-gray-700 basered">Possible Matches</a>
-            <a href="#" class="block px-4 py-2 text-gray-700 basered">Messages</a>
+            {% if default_room %}
+              <a href="{% url 'marital:chat' room_name=default_room %}" class="block px-4 py-2 text-gray-700 basered">Messages</a>
+            {% else %}
+              <a href="#" class="block px-4 py-2 text-gray-700 basered" onclick="alert('No matches available. Check Possible Matches.')">Messages</a>
+            {% endif %}
             <a href="{% url 'marital:logout' %}" class="block px-4 py-2 text-gray-700 basered">Logout</a>
           </div>
         </div>

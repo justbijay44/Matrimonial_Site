@@ -1,8 +1,214 @@
-{% extends 'layout.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Message | JERRYui{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ room_name }} | Chat | JERRYui</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 
-{% block content %}
-<h1>Messages</h1>
-{% endblock %}
+<body class="h-screen flex flex-col bg-gray-100">
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar: List of matched users -->
+        <div class="w-1/4 bg-gray-800 text-white p-4 overflow-y-auto">
+            <h5 class="mb-4 text-lg font-semibold">Chats</h5>
+            <div class="space-y-2">
+                {% for item in user_last_messages %}
+                <a href="{% url 'marital:chat' room_name=item.user.username %}"
+                    class="block p-3 rounded-lg hover:bg-gray-700 {% if item.user.username == room_name %} bg-blue-600 {% endif %}"
+                    data-id="{{ item.user.username }}">
+                    <div class="flex items-center">
+                        <img src="https://ui-avatars.com/api/?name={{ item.user.username|urlencode }}&size=64&background=random"
+                            alt="{{ item.user.username }}'s Profile" class="w-10 h-10 rounded-full mr-3 object-cover">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                                <strong class="text-sm font-medium">{{ item.user.username }}</strong>
+                                {% if item.last_message %}
+                                <span class="text-xs text-gray-400">{{ item.last_message.timestamp|date:"H:i" }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if item.last_message %}
+                                <p class="text-xs text-gray-300 truncate">
+                                    {% if item.last_message.sender == request.user %}You: {% endif %}
+                                    {{ item.last_message.content|truncatewords:5 }}
+                                </p>
+                                {% else %}
+                                <p class="text-xs text-gray-400">No messages yet</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            <div class="mt-auto p-4 bg-gray-800">
+                <h5 class="text-sm"><i class="fas fa-user"></i> {{ request.user.username|title }}</h5>
+                <h5 class="text-sm mt-2 cursor-pointer">
+                    <i class="fas fa-sign-out-alt text-red-500"></i>
+                    <a href="{% url 'marital:home' %}" class="text-white ml-2">Go back</a>
+                </h5>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="w-3/4 flex flex-col">
+            <div class="bg-white p-4 flex items-center border-b">
+                <img src="https://ui-avatars.com/api/?name={{ room_name|urlencode }}&size=64&background=random"
+                    class="w-10 h-10 rounded-full mr-3">
+                <h4 class="text-xl font-semibold">{{ room_name }}</h4>
+                <form method="GET" action="" class="ml-auto">
+                    <input type="text" name="search" class="border p-2 rounded" placeholder="Search messages..."
+                        value="{{ search_query }}">
+                </form>
+            </div>
+            <div id="chatbox" class="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col">
+                {% if chats %}
+                {% for message in chats %}
+                <div
+                    class="chat-message {% if message.sender == request.user %} self-end bg-gray-200 {% else %} self-start bg-blue-500 text-white {% endif %} p-3 rounded-lg max-w-xs mb-2">
+                    <span>{{ message.content }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-center text-gray-500">No messages yet.</p>
+                {% endif %}
+            </div>
+            <div class="p-4 bg-white border-t">
+                <div class="flex">
+                    <input type="text" id="my_input" class="flex-1 border p-2 rounded-l" placeholder="Type a message..."
+                        required>
+                    <button id="submit_button" class="bg-blue-500 text-white p-2 rounded-r hover:bg-blue-600">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ slug|json_script:"room_slug" }}
+
+    <!-- <script>
+        const chatbox = document.querySelector("#chatbox");
+        function scrollToBottom() {
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+        scrollToBottom();
+
+        const roomName = JSON.parse(document.getElementById("room_slug").textContent);
+        const chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + roomName + "/");
+
+        chatSocket.onopen = function (e) { console.log("WebSocket connected!"); };
+        chatSocket.onclose = function (e) { console.log("WebSocket disconnected!"); };
+
+        document.querySelector("#my_input").focus();
+        document.querySelector("#my_input").onkeyup = function (e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                document.querySelector("#submit_button").click();
+            }
+        };
+
+        document.querySelector("#submit_button").onclick = function (e) {
+            const messageInput = document.querySelector("#my_input").value.trim();
+            if (messageInput) {
+                chatSocket.send(JSON.stringify({
+                    'message': messageInput,
+                    'username': "{{ request.user.username }}",
+                    'room_name': roomName
+                }));
+                document.querySelector("#my_input").value = "";
+            } else {
+                alert("Please enter a message!");
+            }
+        };
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.message && data.sender) {
+                const noMessages = document.querySelector("p.text-center");
+                if (noMessages) noMessages.style.display = "none";
+
+                const div = document.createElement("div");
+                div.className = "chat-message " + (data.sender === "{{ request.user.username }}" ? "self-end bg-gray-200" : "self-start bg-blue-500 text-white");
+                div.classList.add("p-3", "rounded-lg", "max-w-xs", "mb-2");
+                div.innerHTML = `<span>${data.message}</span>`;
+                chatbox.appendChild(div);
+                scrollToBottom();
+            }
+        };
+    </script> -->
+
+    <script>
+        const chatbox = document.querySelector("#chatbox");
+        function scrollToBottom() {
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+        scrollToBottom();
+    
+        const roomName = JSON.parse(document.getElementById("room_slug").textContent);
+        console.log("Connecting to WebSocket:", `ws://${window.location.host}/ws/chat/${roomName}/`);
+        const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/`);
+    
+        chatSocket.onopen = function(e) {
+            console.log("WebSocket connected!", e);
+        };
+        chatSocket.onerror = function(e) {
+            console.error("WebSocket error:", e);
+        };
+        chatSocket.onclose = function(e) {
+            console.log("WebSocket disconnected!", e);
+        };
+    
+        document.querySelector("#my_input").focus();
+        document.querySelector("#my_input").onkeyup = function(e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                document.querySelector("#submit_button").click();
+            }
+        };
+    
+        document.querySelector("#submit_button").onclick = function(e) {
+            const messageInput = document.querySelector("#my_input").value.trim();
+            if (messageInput) {
+                console.log("Sending message:", messageInput);
+                chatSocket.send(JSON.stringify({
+                    'message': messageInput,
+                    'username': "{{ request.user.username }}",
+                    'room_name': roomName
+                }));
+                document.querySelector("#my_input").value = "";
+            } else {
+                alert("Please enter a message!");
+            }
+        };
+    
+        chatSocket.onmessage = function(e) {
+            console.log("Message received:", e.data);
+            const data = JSON.parse(e.data);
+            console.log("Parsed data:", data);
+            if (data.message && data.sender) {
+                console.log("Adding message to chatbox:", data.message);
+                const noMessages = document.querySelector("p.text-center");
+                if (noMessages) noMessages.style.display = "none";
+    
+                const div = document.createElement("div");
+                div.className = "chat-message p-3 rounded-lg max-w-xs mb-2";
+                if (data.sender === "{{ request.user.username }}") {
+                    div.classList.add("self-end", "bg-gray-200");
+                } else {
+                    div.classList.add("self-start", "bg-blue-500", "text-white");
+                }
+                div.innerHTML = `<span>${data.message}</span>`;
+                chatbox.appendChild(div);
+                scrollToBottom();
+            } else {
+                console.error("Invalid message data:", data);
+            }
+        };
+    </script>
+</body>
+
+</html>

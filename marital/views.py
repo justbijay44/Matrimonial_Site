@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.db.models import Q, F, IntegerField, ExpressionWrapper
 from django.db.models.functions import ExtractYear
 
-from .models import UserProfile, Preference, Match
+from .models import UserProfile, Preference, Match, Message
 from .forms import UserRegistrationForm, UserProfileForm, PreferenceForm
 
 from django.shortcuts import render, redirect
@@ -13,18 +14,29 @@ from django.contrib import messages
 from .models import Preference
 from .forms import PreferenceForm,LandingPreferenceForm
 
-from datetime import date
+from datetime import datetime
+from django.utils import timezone
+
+from django.shortcuts import render
+from django.contrib import messages
+from django.db.models import Q
+from .models import Preference, Match
+from .forms import LandingPreferenceForm
 
 def home(request):
-    """
-    View for the landing page, showing a preference form for all logged-in users (to view/update preferences)
-    or a preview for anonymous users. Requires login to submit the form.
-    """
     preference_form = None
+    default_room = None
     if request.user.is_authenticated:
         try:
             preference = Preference.objects.get(user=request.user)
-            preference_form = LandingPreferenceForm(instance=preference)  
+            preference_form = LandingPreferenceForm(instance=preference)
+            # Find the first matched user as default room
+            match = Match.objects.filter(
+                (Q(user1=request.user) | Q(user2=request.user)),
+                status='matched'
+            ).order_by('id').first()
+            if match:
+                default_room = match.user2.username if match.user1 == request.user else match.user1.username
         except Preference.DoesNotExist:
             if request.method == 'POST':
                 preference_form = LandingPreferenceForm(request.POST)
@@ -33,7 +45,7 @@ def home(request):
                     preference.user = request.user
                     preference.save()
                     messages.success(request, "Your preferences were saved!")
-                    return redirect('/')  
+                    return redirect('/')
                 else:
                     messages.error(request, "There were errors setting up your preferences. Please check the form.")
             else:
@@ -41,30 +53,12 @@ def home(request):
     else:
         if request.method == 'POST':
             messages.error(request, "Please log in to submit your preferences.")
-            return redirect('login')
-        preference_form = LandingPreferenceForm() 
-    return render(request, "marital/home.html", {"preference_form": preference_form})
-
-# def prefer(request):
-
-#     try:
-#         user_preference = Preference.objects.get(user=request.user)
-#         messages.info(request, "Preferences already set. Update them in your profile.")
-#         return redirect("/")
-#     except Preference.DoesNotExist:
-#         if request.method == 'POST':
-#             preference_form = PreferenceForm(request.POST)
-#             if preference_form.is_valid():
-#                 user_preference = preference_form.save(commit=False)
-#                 user_preference.user = request.user
-#                 user_preference.save()
-#                 messages.success(request, "Your preferences were saved!")
-#                 return redirect('/') 
-#             else:
-#                 messages.error(request, "There was an error saving your preferences. Please check the form.")
-#         else:
-#             preference_form = PreferenceForm()
-#         return render(request, 'marital/prefer.html', {'preference_form': preference_form})
+            return redirect('marital:login')
+        preference_form = LandingPreferenceForm()
+    return render(request, "marital/home.html", {
+        "preference_form": preference_form,
+        "default_room": default_room
+    })
 
 def register(request):
     if request.method == 'POST':
@@ -137,7 +131,7 @@ def matches(request):
         messages.error(request, f"Error retrieving profile or preferences: {str(e)}")
         return redirect('marital:edit_profile')
 
-    current_year = date.today().year
+    current_year = datetime.today().year
     # matches_query = Q(age__gte = preference.min_age, age__lte = preference.max_age)
     matches_query = Q()
 
@@ -170,26 +164,22 @@ def matches(request):
             calculated_age__gte=preference.min_age,
             calculated_age__lte=preference.max_age).exclude(user = request.user)   
 
-    # excluded_users = Match.objects.filter(user1=request.user, status__in=['liked','rejected']).values('user2')
-    # matches = matches.exclude(user__in = excluded_users)
-
-    # Check for existing matches or create new ones
     match_list = []
-
     for match_profile in matches:
         match, created = Match.objects.get_or_create(
-            
-            #requested user
-            user1 = request.user,
-            #possible matches
-            user2 = match_profile.user,
-
-            defaults={'status':'pending'}
+            user1=request.user,
+            user2=match_profile.user,
+            defaults={'status': 'pending'}
         )
         reversed_match = Match.objects.filter(user1=match_profile.user, user2=request.user).first()
-        # and (not reversed_match or reversed_match.status == 'pending')
-        if match.status == 'pending':
-            match_list.append((match_profile, match))
+
+        # if match.status == 'pending':
+        #     match_list.append({
+        #         'profile': match_profile,
+        #         'match': match
+        #     })
+
+        match_list.append((match_profile, match))
 
     return render(request, 'marital/matches.html', {'matches': match_list})
 
@@ -212,12 +202,128 @@ def match_action(request, match_id):
                 return redirect('marital:messages', match_id=match.id)
         elif action == 'reject':
             match.status = 'rejected'
-            messages.error(request, f"One more possibility decreased. {match.user2.username} Eliminated❤️‍🩹")
+            messages.error(request, f"One more possibility decreased. {match.user2.username} Eliminated ❤️‍🩹")
         match.save()
         return redirect('marital:matches')
     return redirect('marital:matches')
 
+def chat_room(request, room_name):
+    """
+    View for rendering the chat interface using room_name (username of the other user).
+    """
+    # Get the other user by username (room_name)
+    other_user = get_object_or_404(User, username=room_name)
 
+    # Check if there's a valid 'matched' status between the users
+    match = Match.objects.filter(
+        (Q(user1=request.user, user2=other_user) | Q(user2=request.user, user1=other_user)),
+        status='matched'
+    ).first()
+
+    if not match:
+        messages.error(request, "You can only message users you've matched with.")
+        return redirect('marital:matches')
+
+    # Determine the other user for display
+    if request.user == match.user1:
+        other_user = match.user2
+    else:
+        other_user = match.user1
+
+    # Search query for filtering messages
+    search_query = request.GET.get('search', '')
+
+    # Get all matched users for the sidebar
+    matched_users = User.objects.filter(
+        Q(user1_matches__user2=request.user, user1_matches__status='matched') |
+        Q(user2_matches__user1=request.user, user2_matches__status='matched')
+    ).distinct().exclude(id=request.user.id)
+
+    # Get chat history for the selected user
+    chats = Message.objects.filter(
+        (Q(sender=request.user, receiver=other_user) | Q(receiver=request.user, sender=other_user))
+    )
+    if search_query:
+        chats = chats.filter(Q(content__icontains=search_query))
+    chats = chats.order_by('timestamp')
+
+    # Get last messages for all matched users (sidebar)
+    user_last_messages = []
+    for user in matched_users:
+        last_message = Message.objects.filter(
+            (Q(sender=request.user, receiver=user) | Q(receiver=request.user, sender=user))
+        ).order_by('-timestamp').first()
+        user_last_messages.append({
+            'user': user,
+            'last_message': last_message
+        })
+    user_last_messages.sort(
+        key=lambda x: x['last_message'].timestamp if x['last_message'] else timezone.now(),
+        reverse=True
+    )
+
+    context = {
+        'room_name': room_name,
+        'chats': chats,
+        'match': match,
+        'user_last_messages': user_last_messages,
+        'search_query': search_query,
+        'slug': room_name  # For WebSocket script
+    }
+    return render(request, 'marital/message.html', context)
+    
 def match_messages(request, match_id):
     match = get_object_or_404(Match, id=match_id)
-    return render(request, 'marital/message.html', {'match': match})
+
+    if match.status != 'matched':
+        messages.error(request, "You can only message users you've matched with.")
+        return redirect('marital:matches')
+    
+    if request.user == match.user1:
+        other_user = match.user2
+    else:
+        other_user = match.user1
+
+    room_name = other_user.username
+    search_query = request.GET.get('search', '')
+
+    matched_users = User.objects.filter(
+        Q(user1_matches__user2=request.user, user1_matches__status='matched') |
+        Q(user2_matches__user1=request.user, user2_matches__status='matched')
+    ).distinct().exclude(id=request.user.id)
+
+    # Get chat history for selected user
+    chats = Message.objects.filter(
+        (Q(sender=request.user) & Q(receiver=other_user)) |
+        (Q(receiver=request.user) & Q(sender=other_user))
+    )
+    if search_query:
+        chats = chats.filter(Q(content__icontains=search_query))
+    chats = chats.order_by('timestamp')
+
+    # Get last messages for all matched users
+    user_last_messages = []
+    for user in matched_users:
+        last_message = Message.objects.filter(
+            (Q(sender=request.user, receiver=user) | Q(receiver=request.user, sender=user))
+        ).order_by('-timestamp').first()  # Get the latest message
+        user_last_messages.append({
+            'user': user,
+            'last_message': last_message
+        })
+    
+    # Sort by most recent message
+    user_last_messages.sort(
+        key=lambda x: x['last_message'].timestamp if x['last_message'] else timezone.now(),
+        reverse=True
+    )
+
+    context = {
+        'room_name': room_name,
+        'chats': chats,
+        'match': match,
+        'user_last_messages': user_last_messages,
+        'search_query': search_query,
+        'slug': room_name
+    }
+    return render(request, 'marital/message.html', context)

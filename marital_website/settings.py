@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,7 +44,7 @@ INSTALLED_APPS = [
     #thirdparty
     'tailwind',
     'theme',
-    'django_browser_reload',
+    # 'django_browser_reload',
 ]
 
 TAILWIND_APP_NAME = 'theme'
@@ -52,7 +54,6 @@ INTERNAL_IPS = [
 ]
 
 NPM_BIN_PATH = "C:\\Program Files\\nodejs\\npm.cmd"
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -83,8 +84,24 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'marital_website.wsgi.application'
+ASGI_APPLICATION = 'marital_website.asgi.application'
+# WSGI_APPLICATION = 'marital_website.wsgi.application'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# For production
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -95,7 +112,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
