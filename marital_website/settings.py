@@ -12,7 +12,9 @@ DEBUG = env.bool("DEBUG", default=False)
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'd3z54%a@e@s#h659fdr5$y($3c+%_846rbtcszn2an$%@^i&je')
 
-ALLOWED_HOSTS = ['*']  # You can specify Railway's domain or a custom domain later
+ALLOWED_HOSTS = ['*.railway.app', '127.0.0.1']  # Add your custom domain later if applicable
+
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app']
 
 # Application definition
 
@@ -30,7 +32,6 @@ INSTALLED_APPS = [
     #thirdparty
     'tailwind',
     'theme',
-    # 'django_browser_reload',
 ]
 
 TAILWIND_APP_NAME = 'theme'
@@ -80,17 +81,11 @@ CHANNEL_LAYERS = {
 }
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL', 'sqlite:///' + str(BASE_DIR / 'db.sqlite3')),
+        conn_max_age=600,
+    )
 }
 
 

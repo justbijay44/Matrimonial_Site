@@ -1,1 +1,1 @@
-web: gunicorn marital_website.wsgi --log-file -
+web: python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application
