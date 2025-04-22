@@ -1,6 +1,0 @@
-django
-django-tailwind
-django-tailwind[reload]
-Pillow
-channels[daphne]
-channels_redis
