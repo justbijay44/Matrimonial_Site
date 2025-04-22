@@ -1,0 +1,16 @@
+[phases.setup]
+nixPkgs = ["python3", "gcc", "nodejs"]
+
+[phases.install]
+cmds = [
+  "pip install -r newrequirements.txt",
+]
+
+[phases.build]
+cmds = [
+  "python manage.py tailwind build",
+  "python manage.py collectstatic --noinput"
+]
+
+[start]
+cmd = "python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application"
