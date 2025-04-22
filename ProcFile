@@ -1,1 +1,1 @@
-web: gunicorn yourprojectname.wsgi
+web: gunicorn marital_website.wsgi
