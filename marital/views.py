@@ -6,13 +6,13 @@ from django.contrib import messages
 from django.db.models import Q, F, IntegerField, ExpressionWrapper
 from django.db.models.functions import ExtractYear
 
-from .models import UserProfile, Preference, Match, Message
-from .forms import UserRegistrationForm, UserProfileForm, PreferenceForm
+from .models import UserProfile, Preference, Match, Message, Testimonial
+from .forms import UserRegistrationForm, UserProfileForm, PreferenceForm, TestimonialForm
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import Preference
-from .forms import PreferenceForm,LandingPreferenceForm
+from .forms import PreferenceForm,LandingPreferenceForm, TestimonialForm
 
 from datetime import datetime
 from django.utils import timezone
@@ -25,40 +25,55 @@ from .forms import LandingPreferenceForm
 
 def home(request):
     preference_form = None
-    default_room = None
+    testimonial_form = None  # Initialize as None first
+    approved_testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')
+
     if request.user.is_authenticated:
         try:
             preference = Preference.objects.get(user=request.user)
             preference_form = LandingPreferenceForm(instance=preference)
-            # Find the first matched user as default room
-            match = Match.objects.filter(
-                (Q(user1=request.user) | Q(user2=request.user)),
-                status='matched'
-            ).order_by('id').first()
-            if match:
-                default_room = match.user2.username if match.user1 == request.user else match.user1.username
         except Preference.DoesNotExist:
-            if request.method == 'POST':
+            preference_form = LandingPreferenceForm()
+    else:
+        preference_form = LandingPreferenceForm()
+
+    if request.method == 'POST':
+        if 'preference_submit' in request.POST:
+            if request.user.is_authenticated:
                 preference_form = LandingPreferenceForm(request.POST)
                 if preference_form.is_valid():
                     preference = preference_form.save(commit=False)
                     preference.user = request.user
                     preference.save()
                     messages.success(request, "Your preferences were saved!")
-                    return redirect('/')
+                    return redirect('marital:home')
                 else:
                     messages.error(request, "There were errors setting up your preferences. Please check the form.")
             else:
-                preference_form = LandingPreferenceForm()
-    else:
-        if request.method == 'POST':
-            messages.error(request, "Please log in to submit your preferences.")
-            return redirect('marital:login')
-        preference_form = LandingPreferenceForm()
-    return render(request, "marital/home.html", {
+                messages.error(request, "Please log in to submit your preferences.")
+                return redirect('marital:login')
+            
+        elif 'testimonial_submit' in request.POST:
+            testimonial_form = TestimonialForm(request.POST, request.FILES)
+            if testimonial_form.is_valid():
+                testimonial = testimonial_form.save(commit=False)
+                testimonial.user = request.user if request.user.is_authenticated else None
+                testimonial.save()
+                messages.success(request, "Thank you for sharing your testimonial! It will be reviewed by our team.")
+                return redirect('marital:home')
+            else:
+                messages.error(request, "There was an error submitting your testimonial.")
+                
+    # Always create a new form instance for GET requests or after successful submission
+    if testimonial_form is None:
+        testimonial_form = TestimonialForm()
+
+    context = {
         "preference_form": preference_form,
-        "default_room": default_room
-    })
+        "testimonial_form": testimonial_form,
+        "approved_testimonials": approved_testimonials
+    }
+    return render(request, 'marital/home.html', context)
 
 def register(request):
     if request.method == 'POST':
@@ -182,7 +197,6 @@ def matches(request):
         match_list.append((match_profile, match))
 
     return render(request, 'marital/matches.html', {'matches': match_list})
-
 
 def match_action(request, match_id):
     match = get_object_or_404(Match, id=match_id)
@@ -327,3 +341,14 @@ def match_messages(request, match_id):
         'slug': room_name
     }
     return render(request, 'marital/message.html', context)
+
+# def submit_testimonial(request):
+#     form = TestimonialForm()
+#     if request.method == 'POST':
+#         form = TestimonialForm(request.POST)
+#         if form.is_valid():
+#             testimonial = form.save(commit=False)
+#             testimonial.user = request.user
+#             testimonial.save()
+#             return redirect("marital:home")
+#     return render(request, 'marital/testimonials_form.html', {'form': form})

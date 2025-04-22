@@ -15,7 +15,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Sort usernames to ensure consistency (e.g., chat_admin_sweta or chat_sweta_admin)
+        # Sort usernames to ensure consistency (e.g., chat_admin_sita or chat_sita_admin)
         usernames = sorted([self.user.username, self.room_name])
         self.room_group_name = f'chat_{usernames[0]}_{usernames[1]}'
         

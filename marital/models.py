@@ -112,3 +112,14 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} to {self.receiver.username} - {self.content[:30]}"
+
+class Testimonial(models.Model):
+    couple_name = models.CharField(max_length=100, unique=True)
+    email = models.EmailField()
+    testimonial = models.TextField()
+    image = models.ImageField(upload_to='testimonials/', null=True, blank=True)
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.couple_name

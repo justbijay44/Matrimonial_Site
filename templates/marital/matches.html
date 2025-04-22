@@ -23,8 +23,8 @@
         {% for match_profile, match in matches %}
         <div class="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300">
             <div class="w-32 h-32 mx-auto bg-gray-200 rounded-full overflow-hidden mb-4">
-                {% if match_profile.image %}
-                <img src="{{ match_profile.image.url }}" alt="{{ match_profile.user.username }}'s Profile"
+                {% if match_profile.profile_image %}
+                <img src="{{ match_profile.profile_image.url }}" alt="{{ match_profile.user.username }}'s Profile"
                     class="w-full h-full object-cover">
                 {% else %}
                 <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar"

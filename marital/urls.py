@@ -14,6 +14,8 @@ urlpatterns = [
     path('chat/<str:room_name>/', views.chat_room, name='chat'),
     path('match/<int:match_id>/messages/', views.match_messages, name='messages'),
 
+    path('match/<int:match_id>/messages/', views.match_messages, name='messages'),
+
     path('register/', views.register, name='register'),
     path('login/',LoginView.as_view(template_name='marital/login.html'), name='login'),
     path('logout/', views.custom_logout, name='logout'),

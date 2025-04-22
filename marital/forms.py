@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import UserProfile,Preference
+from .models import UserProfile,Preference, Testimonial
 
 class UserRegistrationForm(UserCreationForm):
 
@@ -27,7 +27,7 @@ class UserProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Set user field as hidden or remove it if managed by the view
         if 'user' in self.fields:
-            self.fields.pop('user')  # Remove user field since it’s set via the view
+            self.fields.pop('user')  # Remove user field since it's set via the view
         # Disable non-editable fields
         for field in ['created_at', 'updated_at', 'is_profile_complete']:
             if field in self.fields:
@@ -40,7 +40,7 @@ class LandingPreferenceForm(forms.ModelForm):
     prefered_gender = forms.ChoiceField(
         choices=[('', 'I am looking for')] + list(GENDER_CHOICES),
         required=True,
-        label='I’m looking for a'
+        label='I am looking for a'
     )
 
     min_age = forms.ChoiceField(
@@ -121,3 +121,14 @@ class PreferenceForm(forms.ModelForm):
         if min_age and max_age and int(min_age) > int(max_age):
             raise forms.ValidationError("Minimum age cann't be greater than the maximum age")
         return clean_data
+
+class TestimonialForm(forms.ModelForm):
+    class Meta:
+        model = Testimonial
+        fields = ['couple_name', 'testimonial', 'image']
+        
+    def clean_couple_name(self):
+        couple_name = self.cleaned_data.get('couple_name')
+        if Testimonial.objects.filter(couple_name=couple_name).exists():
+            raise forms.ValidationError("A testimonial from this couple already exists. Each couple can only submit one testimonial.")
+        return couple_name
