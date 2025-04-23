@@ -16,5 +16,8 @@ cmds = [
     ". /opt/venv/bin/activate && python manage.py collectstatic --noinput"
 ]
 
-[start]
-cmd = "sh -c 'cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
+[phases.start]
+cmds = [
+    "sh -c 'until . /opt/venv/bin/activate && python manage.py check --database default; do sleep 1; done'",
+    "sh -c 'cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
+]

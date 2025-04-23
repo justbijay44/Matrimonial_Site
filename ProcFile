@@ -1,1 +1,1 @@
-web: cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application
+web: sh -c 'until . /opt/venv/bin/activate && python manage.py check --database default; do sleep 1; done' && cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application
