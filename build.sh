@@ -3,6 +3,9 @@
 # Exit on error
 set -e
 
+# Make sure we're in the right directory
+cd /app
+
 # Activate virtual environment
 source /opt/venv/bin/activate
 
