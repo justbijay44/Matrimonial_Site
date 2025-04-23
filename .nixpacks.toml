@@ -16,7 +16,5 @@ cmds = [
     ". /opt/venv/bin/activate && python manage.py collectstatic --noinput"
 ]
 
-[phases.start]
-cmds = [
-    "sh -c 'cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
-]
+[start]
+cmd = ". /opt/venv/bin/activate && cd /app && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application"
