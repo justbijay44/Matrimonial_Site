@@ -88,13 +88,31 @@ CHANNEL_LAYERS = {
 }
 
 # Database
-if 'DATABASE_URL' in os.environ:
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Parse the URL and force the host to use the public hostname
+    db_config = dj_database_url.parse(database_url)
+    # Remove 'postgres://' and get everything before the next '/'
+    db_host = database_url.replace('postgres://', '').split('/')[0]
+    # Get the host part (remove user:pass@)
+    if '@' in db_host:
+        db_host = db_host.split('@')[1]
+    # Get just the host, remove the port
+    if ':' in db_host:
+        db_host = db_host.split(':')[0]
+        
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_config['NAME'],
+            'USER': db_config['USER'],
+            'PASSWORD': db_config['PASSWORD'],
+            'HOST': db_host,  # Use the public hostname
+            'PORT': db_config['PORT'] or '5432',
+            'OPTIONS': {
+                'sslmode': 'require'
+            }
+        }
     }
 else:
     DATABASES = {

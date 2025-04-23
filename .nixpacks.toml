@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "gcc", "nodejs", "npm"]
+nixPkgs = ["python311", "gcc", "nodejs", "npm", "postgresql", "openssl"]
 
 [phases.install]
 cmds = [
@@ -18,6 +18,5 @@ cmds = [
 
 [phases.start]
 cmds = [
-    "sh -c 'until . /opt/venv/bin/activate && python manage.py check --database default; do sleep 1; done'",
     "sh -c 'cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
 ]
