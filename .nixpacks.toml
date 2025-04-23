@@ -1,9 +1,10 @@
 [phases.setup]
-nixPkgs = ["python3", "gcc", "nodejs", "npm"]
+nixPkgs = ["python311", "gcc", "nodejs", "npm"]
 
 [phases.install]
 cmds = [
     "python -m venv --copies /opt/venv",
+    ". /opt/venv/bin/activate && pip install --upgrade pip",
     ". /opt/venv/bin/activate && pip install -r requirements.txt",
     "cd theme && npm install && npm run build",
     "cd .."
@@ -11,9 +12,9 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "python manage.py tailwind build",
-  "python manage.py collectstatic --noinput"
+    "python manage.py tailwind build",
+    "python manage.py collectstatic --noinput"
 ]
 
 [start]
-cmd = "python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application"
+cmd = "sh -c 'python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"

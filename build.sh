@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
 # Activate virtual environment
 source /opt/venv/bin/activate
 
@@ -17,6 +20,8 @@ cd ..
 python manage.py tailwind build
 python manage.py collectstatic --noinput
 
-# Run migrations and start the server
+# Run migrations
 python manage.py migrate
-daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application 
+
+# Start the server
+exec daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application 
