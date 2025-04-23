@@ -12,9 +12,9 @@ cmds = [
 
 [phases.build]
 cmds = [
-    "python manage.py tailwind build",
-    "python manage.py collectstatic --noinput"
+    ". /opt/venv/bin/activate && python manage.py tailwind build",
+    ". /opt/venv/bin/activate && python manage.py collectstatic --noinput"
 ]
 
 [start]
-cmd = "sh -c 'cd /app && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
+cmd = "sh -c 'cd /app && . /opt/venv/bin/activate && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT marital_website.asgi:application'"
